@@ -37,6 +37,7 @@ async fn main() -> Result<(), BeaError> {
     let checklist = std::env::var("CHECKLIST")?;
     let checklist_update = std::env::var("CHECKLIST_UPDATE")?;
     let bea_data = std::env::var("BEA_CAINC5N")?;
+    let csv = std::env::var("BEA_CAINC5N_CSV")?;
     let user = user::User::new(&url, &key);
     let mut config = config::Config::new(&user, "Regional");
     config.set_table("CAINC5N");
@@ -116,7 +117,7 @@ async fn main() -> Result<(), BeaError> {
             let encode: Vec<u8> = bincode::serialize(&data)?;
             std::fs::write(bea_data.clone(), encode)?;
             let mut data = getdata::Data::new(&data);
-            data.to_csv("p:/bea_cainc5n.csv".into())?;
+            data.to_csv(csv.into())?;
             info!("Data download complete.");
             std::fs::remove_file(checklist_update)?;
         }
