@@ -1,5 +1,5 @@
 use crate::{error, getparameterlist, request, user};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use tracing::info;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -10,15 +10,15 @@ pub struct DatasetDetails {
 }
 
 impl DatasetDetails {
-    pub async fn parameters(&self, user: &user::User) -> Result<getparameterlist::BeaParameters, error::BeaError> {
+    pub async fn parameters(
+        &self,
+        user: &user::User,
+    ) -> Result<getparameterlist::BeaParameters, error::BeaError> {
         let mut body = user.body();
-        body.push_str(&format!("&method=GETPARAMETERLIST"));
+        body.push_str("&method=GETPARAMETERLIST");
         body.push_str(&format!("&datasetname={}", self.dataset_name));
         let client = reqwest::Client::new();
-        let res = client
-            .get(body)
-            .send()
-            .await?;
+        let res = client.get(body).send().await?;
         info!("Response code: {}.", res.status());
         let data = res.json::<getparameterlist::BeaParameters>().await?;
         Ok(data)
@@ -42,7 +42,6 @@ pub struct DatasetResults {
     pub results: Datasets,
 }
 
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub struct BeaDatasets {
@@ -52,12 +51,9 @@ pub struct BeaDatasets {
 impl BeaDatasets {
     pub async fn get(user: &user::User) -> Result<Self, error::BeaError> {
         let mut body = user.body();
-        body.push_str(&format!("&method=GETDATASETLIST"));
+        body.push_str("&method=GETDATASETLIST");
         let client = reqwest::Client::new();
-        let res = client
-            .get(body)
-            .send()
-            .await?;
+        let res = client.get(body).send().await?;
         info!("Response code: {}.", res.status());
         let data = res.json::<BeaDatasets>().await?;
         Ok(data)

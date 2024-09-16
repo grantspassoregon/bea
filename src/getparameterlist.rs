@@ -1,15 +1,15 @@
 use crate::{error, getparametervalues, request, user};
-use serde::{Serialize, Deserialize};
 use serde::de::Deserializer;
+use serde::{Deserialize, Serialize};
 use tracing::info;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Parameter {
     parameter_name: String,
-    #[serde(deserialize_with="deserialize_bool")]
+    #[serde(deserialize_with = "deserialize_bool")]
     multiple_accepted_flag: bool,
-    #[serde(deserialize_with="deserialize_bool")]
+    #[serde(deserialize_with = "deserialize_bool")]
     parameter_is_required_flag: bool,
     parameter_data_type: String,
     parameter_description: String,
@@ -17,21 +17,19 @@ pub struct Parameter {
 }
 
 impl Parameter {
-    pub async fn values(&self, user: &user::User, dataset: &str) -> Result<getparametervalues::BeaParameterValues, error::BeaError> {
+    pub async fn values(
+        &self,
+        user: &user::User,
+        dataset: &str,
+    ) -> Result<getparametervalues::BeaParameterValues, error::BeaError> {
         let mut body = user.body();
-        body.push_str(&format!("&method=GETPARAMETERVALUES"));
+        body.push_str("&method=GETPARAMETERVALUES");
         body.push_str(&format!("&datasetname={}", dataset));
         body.push_str(&format!("&ParameterName={}", self.parameter_name));
         let client = reqwest::Client::new();
-        let res = client
-            .get(body.clone())
-            .send()
-            .await?;
+        let res = client.get(body.clone()).send().await?;
         info!("Response: {}", res.text().await?);
-        let res = client
-            .get(body)
-            .send()
-            .await?;
+        let res = client.get(body).send().await?;
         info!("Response code: {}.", res.status());
         let data = res.json::<getparametervalues::BeaParameterValues>().await?;
         Ok(data)

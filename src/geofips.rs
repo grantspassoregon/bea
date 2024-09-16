@@ -1,16 +1,13 @@
 use crate::{config, error, request};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use tracing::info;
 
 pub async fn get_geofips(config: &config::Config) -> Result<BeaGeoFips, error::BeaError> {
     let mut body = config.body();
-    body.push_str(&format!("&method=GetParameterValuesFiltered"));
-    body.push_str(&format!("&TargetParameter=GeoFips"));
+    body.push_str("&method=GetParameterValuesFiltered");
+    body.push_str("&TargetParameter=GeoFips");
     let client = reqwest::Client::new();
-    let res = client
-        .get(body)
-        .send()
-        .await?;
+    let res = client.get(body).send().await?;
     Ok(res.json::<BeaGeoFips>().await?)
 }
 
@@ -30,7 +27,7 @@ impl GeoFipsItem {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct GeoFips {
-    param_value: Vec<GeoFipsItem>
+    param_value: Vec<GeoFipsItem>,
 }
 
 impl GeoFips {
@@ -73,7 +70,7 @@ impl GeoFipsTask {
     pub fn processed(&self) -> bool {
         self.processed
     }
-    
+
     pub fn set_processed(&mut self, value: bool) {
         self.processed = value;
     }
@@ -119,8 +116,6 @@ impl From<&GeoFips> for GeoFipsTasks {
         for code in geofips.param_value.clone() {
             tasks.push(GeoFipsTask::from(&code));
         }
-        GeoFipsTasks {
-            tasks
-        }
+        GeoFipsTasks { tasks }
     }
 }

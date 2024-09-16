@@ -1,15 +1,12 @@
 use crate::{config, error, getparameterlist, request};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use tracing::info;
 
 pub async fn get_data(config: &config::Config) -> Result<BeaDataResponse, error::BeaError> {
     let mut body = config.body();
-    body.push_str(&format!("&method=GetData"));
+    body.push_str("&method=GetData");
     let client = reqwest::Client::new();
-    let res = client
-        .get(body)
-        .send()
-        .await?;
+    let res = client.get(body).send().await?;
     let res = res.json::<BeaDataResponse>().await?;
     Ok(res)
 }
@@ -19,7 +16,7 @@ pub async fn get_data(config: &config::Config) -> Result<BeaDataResponse, error:
 pub struct Dimension {
     name: String,
     data_type: String,
-    #[serde(deserialize_with="getparameterlist::deserialize_bool")]
+    #[serde(deserialize_with = "getparameterlist::deserialize_bool")]
     is_value: bool,
 }
 
@@ -85,7 +82,6 @@ impl Data {
         Ok(())
     }
 }
-
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]

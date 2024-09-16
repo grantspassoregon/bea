@@ -1,16 +1,13 @@
 use crate::{config, error, request};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use tracing::info;
 
 pub async fn get_line_codes(config: &config::Config) -> Result<BeaLineCodes, error::BeaError> {
     let mut body = config.body();
-    body.push_str(&format!("&method=GetParameterValuesFiltered"));
-    body.push_str(&format!("&TargetParameter=LineCode"));
+    body.push_str("&method=GetParameterValuesFiltered");
+    body.push_str("&TargetParameter=LineCode");
     let client = reqwest::Client::new();
-    let res = client
-        .get(body)
-        .send()
-        .await?;
+    let res = client.get(body).send().await?;
     Ok(res.json::<BeaLineCodes>().await?)
 }
 
@@ -30,7 +27,7 @@ impl LineCode {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct LineCodes {
-    param_value: Vec<LineCode>
+    param_value: Vec<LineCode>,
 }
 
 impl LineCodes {
@@ -86,8 +83,6 @@ impl From<&LineCodes> for LineCodeTasks {
         for code in linecodes.param_value.clone() {
             tasks.push(LineCodeTask::from(&code));
         }
-        LineCodeTasks {
-            tasks
-        }
+        LineCodeTasks { tasks }
     }
 }

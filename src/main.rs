@@ -1,12 +1,13 @@
 use bea::error::BeaError;
-use bea::{config, user, getdata, geofips};
+use bea::{config, geofips, getdata, user};
 use clap::Parser;
 use indicatif::ProgressBar;
-use tracing::{info, trace};
+use spreadsheet::prelude::BeaData;
 use tracing::subscriber::set_global_default;
+use tracing::{info, trace};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
-use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
 use tracing_log::LogTracer;
+use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -20,8 +21,7 @@ struct Cli {
 #[tokio::main]
 async fn main() -> Result<(), BeaError> {
     LogTracer::init().expect("Failed to set logger.");
-    let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info"));
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
     let formatting_layer = BunyanFormattingLayer::new("bea".into(), std::io::stdout);
     let subscriber = Registry::default()
         .with(env_filter)
@@ -43,9 +43,9 @@ async fn main() -> Result<(), BeaError> {
     config.set_table("CAINC5N");
 
     let style = indicatif::ProgressStyle::with_template(
-            "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {'Downloading data.'}",
-        )
-        .unwrap();
+        "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {'Downloading data.'}",
+    )
+    .unwrap();
     let cli = Cli::parse();
     match &cli.command as &str {
         "checklist" => {
@@ -64,8 +64,7 @@ async fn main() -> Result<(), BeaError> {
         }
         "download" => {
             info!("Download data.");
-            config.set_linecode("ALL")
-                .set_year("ALL");
+            config.set_linecode("ALL").set_year("ALL");
             let check = std::fs::read(&checklist)?;
             let mut check: geofips::GeoFipsTasks = bincode::deserialize(&check)?;
             if std::path::PathBuf::from(checklist_update.clone()).exists() {
@@ -79,8 +78,24 @@ async fn main() -> Result<(), BeaError> {
                         }
                     }
                 }
-                info!("Tasks processed: {}.", check.tasks().iter().filter(|v| v.processed() == true).collect::<Vec<&geofips::GeoFipsTask>>().len());
-                info!("Tasks remaining: {}.", check.tasks().iter().filter(|v| v.processed() == false).collect::<Vec<&geofips::GeoFipsTask>>().len());
+                info!(
+                    "Tasks processed: {}.",
+                    check
+                        .tasks()
+                        .iter()
+                        .filter(|v| v.processed())
+                        .collect::<Vec<&geofips::GeoFipsTask>>()
+                        .len()
+                );
+                info!(
+                    "Tasks remaining: {}.",
+                    check
+                        .tasks()
+                        .iter()
+                        .filter(|v| !v.processed())
+                        .collect::<Vec<&geofips::GeoFipsTask>>()
+                        .len()
+                );
                 std::fs::remove_file(checklist_update.clone())?;
             }
             let mut data = Vec::new();
@@ -109,7 +124,6 @@ async fn main() -> Result<(), BeaError> {
                             let encode: Vec<u8> = bincode::serialize(&data)?;
                             std::fs::write(bea_data.clone(), encode)?;
                             info!("GeoFips {} failed to download.", task.key());
-
                         }
                     }
                 }
@@ -120,6 +134,17 @@ async fn main() -> Result<(), BeaError> {
             data.to_csv(csv.into())?;
             info!("Data download complete.");
             std::fs::remove_file(checklist_update)?;
+        }
+        "save" => {
+            let path = std::env::var("BEA_CAINC5N_CSV")?;
+            let records = BeaData::from_csv(path)?;
+            tracing::info!("Records: {}", records.records_ref().len());
+            info!("Serializing to binary.");
+            let encode = bincode::serialize(&records)?;
+            if let Some(source) = cli.source {
+                info!("Writing to file.");
+                std::fs::write(source, encode)?;
+            }
         }
         _ => info!("Command not recognized."),
     };
