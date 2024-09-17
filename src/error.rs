@@ -1,27 +1,32 @@
-use thiserror::Error;
+use derive_more::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, derive_more::Display, derive_more::From)]
 pub enum BeaError {
-    #[error("Parse error.")]
+    #[display("Parse error: {:?}", self.source())]
     ParseError,
-    #[error("HTTP request error.")]
-    HttpError(#[from] reqwest::Error),
-    #[error("Deserialization error.")]
-    ConversionError(#[from] serde_json::Error),
-    #[error("Could not make CSV writer.")]
-    CsvError(#[from] csv::Error),
-    #[error("Could not serialize to binary.")]
+    #[display("HTTP request error: {:?}", self.source())]
+    #[from(reqwest::Error)]
+    HttpError,
+    #[display("Deserialization error: {:?}", self.source())]
+    #[from(serde_json::Error)]
+    ConversionError,
+    #[display("Could not make CSV writer: {:?}", self.source())]
+    #[from(csv::Error)]
+    CsvError,
+    #[display("Could not serialize to binary: {:?}", self.source())]
+    #[from(Box<bincode::ErrorKind>)]
     BinError(#[from] Box<bincode::ErrorKind>),
-    // #[error("Deserialize error.")]
-    // DeserializeError(#[from] serde::de::value::Error),
-    #[error("Value not provided for {value:?}.")]
+    #[display("Value not provided for {value:?}.")]
     UserBuildError { value: Vec<String> },
-    #[error("Input/output error from std.")]
-    Io(#[from] std::io::Error),
-    #[error("Could not read environmental variables from .env.")]
-    EnvError(#[from] std::env::VarError),
-    #[error("Authorization failed.")]
+    #[display("Input/output error from std: {:?}", self.source())]
+    #[from(std::io::Error)]
+    Io,
+    #[display("Could not read environmental variables from .env: {:?}", self.source())]
+    #[from(std::env::VarError)]
+    EnvError,
+    #[display("Authorization failed: {:?}", self.source())]
     AuthError,
-    #[error("Bad file name {0:?}.")]
-    FileNameError(std::ffi::OsString),
+    #[display("Bad file name {0:?}.", self.source())]
+    #[from(std::ffi::OsString)]
+    FileNameError,
 }

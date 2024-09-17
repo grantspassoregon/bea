@@ -29,7 +29,7 @@ async fn main() -> Result<(), BeaError> {
         .with(formatting_layer);
     set_global_default(subscriber).expect("Failed to set subscriber.");
     trace!("Subscriber initialized.");
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     trace!("Environmental variables loaded.");
 
     let url = std::env::var("BEA_URL")?;
@@ -133,7 +133,12 @@ async fn main() -> Result<(), BeaError> {
             let mut data = getdata::Data::new(&data);
             data.to_csv(csv.into())?;
             info!("Data download complete.");
-            std::fs::remove_file(checklist_update)?;
+            if let Ok(check) = std::fs::exists(&checklist_update) {
+                if check {
+                    std::fs::remove_file(checklist_update)?;
+                    info!("Completed checklist removed.");
+                }
+            }
         }
         "save" => {
             let path = std::env::var("BEA_CAINC5N_CSV")?;
